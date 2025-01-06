@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search Posts</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1 id="selectedSubredditTitle"></h1>
+        <div class="nav-button">
+            <button onclick="window.location.href='/'">← Back to Subreddit Search</button>
+        </div>
+        <form id="queryForm">
+            <input type="text" id="searchQueryInput" placeholder="Enter search keywords" required>
+            <div class="sort-controls">
+                <select id="sortBy">
+                    <option value="relevance">Relevance</option>
+                    <option value="hot">Hot</option>
+                    <option value="top">Top</option>
+                    <option value="new">New</option>
+                </select>
+                <select id="limit">
+                    <option value="10">10 posts</option>
+                    <option value="25">25 posts</option>
+                    <option value="50">50 posts</option>
+                    <option value="100">100 posts</option>
+                </select>
+            </div>
+            <button type="submit">Search Posts</button>
+        </form>
+        <div class="results" id="results"></div>
+    </div>
+
+    <script>
+        let accessToken = '';
+
+        // Function to get a new access token
+        async function getAccessToken() {
+            try {
+                const response = await fetch('/api/access_token', {
+                    method: 'POST'
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to get access token');
+                }
+
+                const data = await response.json();
+                accessToken = data.access_token;
+                localStorage.setItem('tokenExpires', Date.now() + data.expires_in * 1000);
+                return accessToken;
+            } catch (error) {
+                console.error('Error getting access token:', error);
+                alert('Failed to authenticate with Reddit. Please try again later.');
+                throw error;
+            }
+        }
+
+        // Function to validate or refresh the access token
+        async function getValidToken() {
+            const tokenExpires = localStorage.getItem('tokenExpires');
+            if (!accessToken || !tokenExpires || Date.now() >= parseInt(tokenExpires)) {
+                return await getAccessToken();
+            }
+            return accessToken;
+        }
+
+        // Get DOM elements
+        const queryForm = document.getElementById('queryForm');
+        const searchQueryInput = document.getElementById('searchQueryInput');
+        const resultsContainer = document.getElementById('results');
+        const sortBySelect = document.getElementById('sortBy');
+        const limitSelect = document.getElementById('limit');
+        const selectedSubredditTitle = document.getElementById('selectedSubredditTitle');
+
+        // Get subreddit from URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const selectedSubreddit = urlParams.get('subreddit');
+
+        if (!selectedSubreddit) {
+            window.location.href = '/';
+        } else {
+            selectedSubredditTitle.textContent = `Searching in: r/${selectedSubreddit}`;
+        }
+
+        // Event listener for form submission
+        queryForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const query = searchQueryInput.value.trim();
+            const sort = sortBySelect.value;
+            const limit = limitSelect.value;
+
+            if (!query) {
+                alert('Please enter a search query.');
+                return;
+            }
+
+            resultsContainer.innerHTML = '<p>Loading...</p>';
+
+            try {
+                // Get a valid token
+                const token = await getValidToken();
+
+                const response = await fetch(`/api/search_posts?${new URLSearchParams({
+                    subreddit: selectedSubreddit,
+                    q: query,
+                    sort: sort,
+                    limit: limit
+                })}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Error fetching posts: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                const posts = data.data.children;
+
+                if (!posts || posts.length === 0) {
+                    resultsContainer.innerHTML = '<p>No results found.</p>';
+                    return;
+                }
+
+                resultsContainer.innerHTML = '';
+                posts.forEach(post => {
+                    const postData = post.data;
+                    const timestamp = new Date(postData.created_utc * 1000).toLocaleDateString();
+                    const resultItem = document.createElement('div');
+                    resultItem.classList.add('result-item');
+
+                    let postHTML = `<h3>${postData.title}</h3>`;
+
+                    if (postData.thumbnail && postData.thumbnail !== 'self' && postData.thumbnail !== 'default') {
+                        postHTML += `<img src="${postData.thumbnail}" alt="Post thumbnail" style="width: 140px; height: 140px; object-fit: cover;">`;
+                    }
+
+                    if (postData.selftext) {
+                        postHTML += `<p>${postData.selftext.substring(0, 150)}${postData.selftext.length > 150 ? '...' : ''}</p>`;
+                    }
+
+                    postHTML += `
+                        <div class="post-stats">
+                            <span>👤 ${postData.author}</span>
+                            <span>⬆️ ${postData.score}</span>
+                            <span>💬 ${postData.num_comments}</span>
+                            <span>📅 ${timestamp}</span>
+                        </div>
+                        <div class="tags">
+                            ${postData.link_flair_text ? `<span class="tag">${postData.link_flair_text}</span>` : ''}
+                            ${postData.over_18 ? '<span class="tag">NSFW</span>' : ''}
+                        </div>
+                        <p><a href="https://www.reddit.com${postData.permalink}" target="_blank">View Post</a></p>
+                    `;
+
+                    resultItem.innerHTML = postHTML;
+                    resultsContainer.appendChild(resultItem);
+                });
+            } catch (error) {
+                resultsContainer.innerHTML = `
+                    <div class="error-message">
+                        <p>Error: ${error.message}</p>
+                        <p>Please try again later.</p>
+                    </div>
+                `;
+            }
+        });
+
+        // Initialize: Get access token
+        getAccessToken().catch(error => console.error('Initialization failed:', error));
+    </script>
+</body>
+</html>
