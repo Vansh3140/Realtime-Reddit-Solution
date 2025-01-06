@@ -1,22 +1,16 @@
 from flask import Flask, render_template, request, jsonify
 from dotenv import load_dotenv
 import os
-import hrequests
+import requests
 from base64 import b64encode
+
 # Load environment variables
 load_dotenv()
 
 app = Flask(__name__)
 
-# Move HTML files to templates folder and CSS to static folder
-# Project structure should be:
-# - templates/
-#   - index.html
-#   - search.html
-# - static/
-#   - styles.css
-# - server.py
-# - .env
+# Proxy configuration
+PROXY = os.getenv('PROXIES)
 
 @app.route('/')
 def index():
@@ -41,10 +35,11 @@ def get_access_token():
         
         data = {'grant_type': 'client_credentials'}
         
-        response = hrequests.post(
+        response = requests.post(
             'https://www.reddit.com/api/v1/access_token',
             headers=headers,
-            data=data
+            data=data,
+            proxies=PROXY  # Use proxy here
         )
         
         return jsonify(response.json())
@@ -55,8 +50,9 @@ def get_access_token():
 def search_subreddits():
     try:
         query = request.args.get('q')
-        response = hrequests.get(
-            f'https://www.reddit.com/subreddits/search.json?q={query}&type=sr&typeahead_active=true'
+        response = requests.get(
+            f'https://www.reddit.com/subreddits/search.json?q={query}&type=sr&typeahead_active=true',
+            proxies=PROXY  # Use proxy here
         )
         print(f"Response Status Code: {response.status_code}")
         print(f"Response Content: {response.text}")
@@ -75,7 +71,7 @@ def search_posts():
         
         headers = {'Authorization': f'Bearer {token}'}
         
-        response = hrequests.get(
+        response = requests.get(
             f'https://oauth.reddit.com/r/{subreddit}/search',
             headers=headers,
             params={
@@ -83,7 +79,8 @@ def search_posts():
                 'restrict_sr': 'true',
                 'sort': sort,
                 'limit': limit
-            }
+            },
+            proxies=PROXY  # Use proxy here
         )
         
         return jsonify(response.json())
