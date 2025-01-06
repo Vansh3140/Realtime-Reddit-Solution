@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, jsonify
 from dotenv import load_dotenv
 import os
-import hrequests
+import requests
 from base64 import b64encode
 # Load environment variables
 load_dotenv()
@@ -41,7 +41,7 @@ def get_access_token():
         
         data = {'grant_type': 'client_credentials'}
         
-        response = hrequests.post(
+        response = requests.post(
             'https://www.reddit.com/api/v1/access_token',
             headers=headers,
             data=data
@@ -55,7 +55,7 @@ def get_access_token():
 def search_subreddits():
     try:
         query = request.args.get('q')
-        response = hrequests.get(
+        response = requests.get(
             f'https://www.reddit.com/subreddits/search.json?q={query}&type=sr&typeahead_active=true'
         )
         print(f"Response Status Code: {response.status_code}")
@@ -75,7 +75,7 @@ def search_posts():
         
         headers = {'Authorization': f'Bearer {token}'}
         
-        response = hrequests.get(
+        response = requests.get(
             f'https://oauth.reddit.com/r/{subreddit}/search',
             headers=headers,
             params={
