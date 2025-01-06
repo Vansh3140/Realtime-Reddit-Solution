@@ -12,7 +12,7 @@ app = Flask(__name__)
 # Proxy configuration
 PROXY ={
     "http": f"http://{os.getenv('PROXIES')}",
-    "https": f"http://{os.getenv('PROXIES')",
+    "https": f"http://{os.getenv('PROXIES')}",
 }
 
 @app.route('/')
