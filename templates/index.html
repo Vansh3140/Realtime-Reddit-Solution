@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reddit Subreddit Search</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="container fixed" id="step1">
+        <h1>Search for a Subreddit</h1>
+        <form id="subredditForm">
+            <input type="text" id="subredditInput" placeholder="Enter subreddit name" required>
+            <button type="submit">Search</button>
+        </form>
+    </div>
+
+    <div class="container" id="resultsContainer">
+        <div class="results result-grid" id="subredditSuggestions"></div>
+    </div>
+
+    <script>
+        const subredditForm = document.getElementById('subredditForm');
+        const subredditInput = document.getElementById('subredditInput');
+        const subredditSuggestions = document.getElementById('subredditSuggestions');
+
+        subredditForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const subreddit = subredditInput.value.trim();
+
+            if (!subreddit) {
+                alert('Please enter a subreddit name.');
+                return;
+            }
+
+            subredditSuggestions.innerHTML = '<p>Loading...</p>';
+
+            try {
+                const response = await fetch(`/api/search_subreddits?q=${encodeURIComponent(subreddit)}`);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+                const data = await response.json();
+                const subreddits = data.data.children;
+
+                if (subreddits.length === 0) {
+                    subredditSuggestions.innerHTML = '<p>No subreddits found.</p>';
+                    return;
+                }
+
+                subredditSuggestions.innerHTML = '';
+                subreddits.forEach(sub => {
+                    const subData = sub.data;
+                    const resultItem = document.createElement('div');
+                    resultItem.classList.add('result-item');
+                    resultItem.innerHTML = `
+                        <img src="${subData.icon_img || 'https://www.redditstatic.com/desktop2x/img/favicon/apple-icon-57x57.png'}" alt="Subreddit Icon">
+                        <h3>${subData.display_name_prefixed}</h3>
+                        <p>${subData.public_description || 'No description available.'}</p>
+                        <p>${subData.subscribers.toLocaleString()} members</p>
+                        <div class="tags">
+                            <span class="tag">${subData.subscribers > 1000000 ? 'Massive' : 'Popular'}</span>
+                            <span class="tag">${subData.active_user_count ? 'Active' : 'Less Active'}</span>
+                        </div>
+                    `;
+
+                    resultItem.addEventListener('click', () => {
+                        window.location.href = `/search?subreddit=${subData.display_name}`;
+                    });
+
+                    subredditSuggestions.appendChild(resultItem);
+                });
+            } catch (error) {
+                subredditSuggestions.innerHTML = `
+                    <div class="error-message">
+                        <p>Error: ${error.message}</p>
+                        <p>Please try again later.</p>
+                    </div>
+                `;
+            }
+        });
+    </script>
+</body>
+</html>
