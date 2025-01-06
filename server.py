@@ -58,6 +58,8 @@ def search_subreddits():
         response = requests.get(
             f'https://www.reddit.com/subreddits/search.json?q={query}&type=sr&typeahead_active=true'
         )
+        print(f"Response Status Code: {response.status_code}")
+        print(f"Response Content: {response.text}")
         return jsonify(response.json())
     except Exception as e:
         return jsonify({'error': str(e)}), 500
