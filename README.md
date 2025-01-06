@@ -3,7 +3,7 @@
 ## Overview
 A powerful, user-friendly web application that enables users to search Reddit content through an intuitive interface. The application provides a two-step search process: first finding relevant subreddits, then searching within them for specific posts. Built with Flask and vanilla JavaScript, it uses Reddit's OAuth API for secure data fetching.
 
-![Project Scree-recording]
+![Project Screen-recording]
 
 https://github.com/user-attachments/assets/dabda77b-43cd-4ea3-b778-c330126cb69c
 
