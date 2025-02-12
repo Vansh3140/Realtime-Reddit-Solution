@@ -9,7 +9,7 @@ https://github.com/user-attachments/assets/dabda77b-43cd-4ea3-b778-c330126cb69c
 
 ## Features
 
-### Hot to use
+### How to use
 https://realtime-reddit-solution.onrender.com
 You can use the service here but as it is deployed on the free render version so it might take a minute to again up the service
 
